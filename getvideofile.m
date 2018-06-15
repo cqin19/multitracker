@@ -34,6 +34,7 @@ while hasFrame(vid)
     
 end
     
+% label centroids
         hold on
     labelShifty = -20;
 for k = 1:length(s)
