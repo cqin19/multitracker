@@ -8,12 +8,5 @@ CellData = num2cell(RepData, 2);
 pJackpot = numel(row) ./ (nTrials.*nReps);
 trialsToJackpot = NaN(nReps,1);
 
-% for i = 1:nReps
-%     minTrial = min(row(col==i));
-%     if any(minTrial)
-%         trialsToJackpot(i) = minTrial;
-%     end
-% end
-% 
 trialsToJackpot = arrayfun(@(x) min(row(col==x)), 1:nReps, ...
                            'UniformOutput', false)';
