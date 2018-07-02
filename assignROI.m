@@ -1,6 +1,7 @@
 
 function ROI_cen = assignROI(raw_cen, expmt)
 
+%{
 % get user data from gui
 udat = gui_handles.gui_fig.UserData;
 
@@ -25,13 +26,16 @@ g=abs(g);
 % Of the temp centroid with that distance
 [~,j]=min(g);
 
-% Initialize empty placeholders for permutation and inclusion vectors
-sorting_permutation=[];
-update_centroid = false(size(trackDat.Centroid,1),1);
 
-ROI_cen = cell(expmt.ROI.n, 1);
+
+%}
+
 ROI_num = cellfun(@(x) subAssignROI(x,expmt.ROI.corners),...
      num2cell(raw_cen,2),'UniformOutput',false);
+ROI_num = cat(1,ROI_num{:});
+ 
+ROI_cen = arrayfun(@(x) raw_cen(ROI_num==x,:), 1:expmt.ROI.n,...
+            'UniformOutput',false)';
 
 % assign ROIs to centroids
 function ROI_num = subAssignROI(cen,b)
