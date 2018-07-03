@@ -2,8 +2,9 @@ function imHandle = circularMask(radius, imSize)
 bw = false(imSize);
 bw_cen = randi(imSize,1);
 bw(bw_cen) = 1;
-bw(bwdist(bw)<=radius) = true;
-imHandle = bw;
-imshow(imHandle)
+if bwdist(bw) > radius
+    bw(bwdist(bw)>radius) = false;
+else bw = true
 
 
+%for i = [bw_cen+radius bw_cen-radius]
