@@ -1,40 +1,15 @@
 
-function ROI_cen = assignROI(raw_cen, expmt)
-
-%{
-% get user data from gui
-udat = gui_handles.gui_fig.UserData;
-
-% Define placeholder data variables equal to number ROIs
-tempCenDat=NaN(size(trackDat.Centroid,1),2);
-
-% Initialize temporary centroid variables
-tempCenDat(1:size(raw_cen,1),:)=raw_cen;
-
-% Find nearest Last Known Centroid for each current centroid
-% Replicate temp centroid data into dimensions compatible with dot product
-% with the last known centroid of each fly
-tD=repmat(tempCenDat,1,1,size(trackDat.Centroid,1));
-c=repmat(trackDat.Centroid,1,1,size(tempCenDat,1));
-c=permute(c,[3 2 1]);
-
-% Use dot product to calculate pairwise distance between all coordinates
-g=sqrt(dot((c-tD),(tD-c),2));
-g=abs(g);
-
-% Returns minimum distance to each previous centroid and the indces (j)
-% Of the temp centroid with that distance
-[~,j]=min(g);
+function [ROI_cen, blob_num] = assignROI(raw_cen, expmt)
 
 
-
-%}
-
-ROI_num = cellfun(@(x) subAssignROI(x,expmt.ROI.corners),...
+ROI_num = cellfun(@(x) subAssignROI(x,expmt.meta.roi.corners),...
      num2cell(raw_cen,2),'UniformOutput',false);
 ROI_num = cat(1,ROI_num{:});
+blob_num = 1:size(raw_cen,1);
  
-ROI_cen = arrayfun(@(x) raw_cen(ROI_num==x,:), 1:expmt.ROI.n,...
+ROI_cen = arrayfun(@(x) raw_cen(ROI_num==x,:), 1:expmt.meta.roi.n,...
+            'UniformOutput',false)';
+blob_num = arrayfun(@(x) blob_num(ROI_num==x), 1:expmt.meta.roi.n,...
             'UniformOutput',false)';
 
 % assign ROIs to centroids

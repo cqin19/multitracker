@@ -1,14 +1,11 @@
-
-% function to read videos and test frame by frame
-function vid = getvideofile
-%% read videos & initialize variables
+function traces_per_roi = estTracesperROI
 
 vidPath = ['C:\Users\debivortlab\Documents\MATLAB\autotracker_data\Gary\48_well_sample\07-19-2018-13-40-55__Basic_Tracking__1-48_Day1_VideoData.mp4'];
 vid = VideoReader(vidPath);
 
-% load expmt file
 load('C:\Users\debivortlab\Documents\MATLAB\autotracker_data\Gary\48_well_sample\07-19-2018-13-40-55__Basic_Tracking__1-48_Day1.mat');
 
+% get reference image
 ref = expmt.meta.ref.im;
 % num_frames = vid.NumberOfFrames;
 % sample_frames = randperm(num_frames,10);
@@ -43,10 +40,12 @@ colormap('gray');
 hold on
 init_cen = cat(1,ROI_cen{:});
 ph = plot(init_cen(:,1),init_cen(:,2), 'ro');
+%{
 th = text(init_cen(:,1),init_cen(:,2),...
         cellfun(@num2str,num2cell(1:length(init_cen)),...
         'UniformOutput',false),'Color',[1 0 1], ...
         'HorizontalAlignment','center');
+%}
 text_shift = -15;
 th_fps = text(size(ref,2)*0.1,size(ref,1)*0.1,'0',...
              'Color',[1 0 1],'HorizontalAlignment','center');
@@ -68,10 +67,10 @@ can_duration = cell(expmt.meta.roi.n,1);
 area_bounds = [expmt.parameters.area_min expmt.parameters.area_max];
 [area_samples, cen_dist] = ...
     sampleAreaDist(vid,ref,area_bounds,thresh,50);
-area_thresh = median(area_samples).*1.7;
+area_thresh = median(area_samples).*1.5;
 %% tracking loop
 % read video, get threshold image
-while ct <= ceil(expmt.meta.num_frames * 0.06)
+while ct <= ceil(expmt.meta.num_frames * 1)
 
     % update time-keeping
     ct = ct+1;
@@ -90,9 +89,9 @@ while ct <= ceil(expmt.meta.num_frames * 0.06)
     % plot threshold image
     s = regionprops(thresh_im,'Centroid','Area','PixelList');
 
-    [centroids, new_area] = erodeDoubleBlobs(s, area_thresh);
-%     centroids = cat(1,s.Centroid);
-%     new_area = cat(1,s.Area);
+    %[centroids, new_area] = erodeDoubleBlobs(s, area_thresh);
+    centroids = cat(1,s.Centroid);
+    new_area = cat(1,s.Area);
 
     % apply area threshold before assigning centroids
     above_min = new_area .* (expmt.parameters.mm_per_pix^2) > ...
@@ -101,16 +100,13 @@ while ct <= ceil(expmt.meta.num_frames * 0.06)
         expmt.parameters.area_max;
     centroids(~(above_min & below_max),:) = [];
 
-    [candidate_ROI_cen, blob_num] = assignROI(centroids, expmt);
+    candidate_ROI_cen = assignROI(centroids, expmt);
 
-    [ROI_cen, t_update, trace_updated, blob_assigned, blob_permutation] = ...
-        cellfun(@(x,y,z,q) sortROI_multitrack(x, y, z, ...
+    [ROI_cen, t_update, trace_updated, blob_assigned] = ...
+        cellfun(@(x,y,z) sortROI_multitrack(x, y, z, ...
                 t_curr, spd_thresh), ROI_cen, ...
                 candidate_ROI_cen, t_update, ...
-                'UniformOutput',false);
-            
-    permutation = cellfun(@(bn,bp) bn(bp), blob_num, blob_permutation,...
-                    'UniformOutput',false);
+                'UniformOutput',false);          
     
     trace_duration = cellfun(@(x,y) updateTraceDuration(x, y, ...
                              max_trace_count), trace_duration, ...
@@ -124,7 +120,7 @@ while ct <= ceil(expmt.meta.num_frames * 0.06)
                            blob_assigned, 'UniformOutput', false);
     
                        
-    [can_newtrace, can_t_update, trace_updated, blob_assigned, ~] = ...
+    [can_newtrace, can_t_update, trace_updated, blob_assigned] = ...
         cellfun(@(x,y,z) sortROI_multitrack(x, y, z, t_curr, ...
                 spd_thresh), can_newtrace, unassigned_blobs, can_t_update, ...
                 'UniformOutput', false);  
@@ -157,6 +153,9 @@ while ct <= ceil(expmt.meta.num_frames * 0.06)
     drawnow limitrate
 
 end
+
+traces_per_roi = cellfun(@(x) sum(~isnan(x)), t_update, ...
+                         'UniformOutput', false);
     
                      
 function updateText(x,y,text_handle)
